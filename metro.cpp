@@ -16,6 +16,7 @@ using std::set;
 using std::queue;
 
 class Metro {
+#define forea
 public:
     Metro(vector<string> file)
     {
