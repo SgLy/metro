@@ -402,10 +402,3 @@ const char* Metro::SUBWAY_NAME[] = {
     "GuangFo",
     "APM"
 };
-
-int main() {
-    Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
-    return 0;
-}
-
-
