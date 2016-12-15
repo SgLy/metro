@@ -74,11 +74,11 @@ struct State {
         int ret = cost_money + 2;
         const double EPS = 1e-5;
         if(distance > 4. + EPS)
-            ret += ceil((min(distance, 12.) - EPS) / 4.);
+            ret += ceil((min(distance, 12.) - 4. - EPS) / 4.);
         if(distance > 12. + EPS)
-            ret += ceil((min(distance, 24.) - EPS) / 6.);
+            ret += ceil((min(distance, 24.) - 12. - EPS) / 6.);
         if(distance > 24. + EPS)
-            ret += ceil((distance - EPS) / 8.);
+            ret += ceil((distance - 24. - EPS) / 8.);
         return ret;
     }
 };
@@ -167,12 +167,13 @@ private :
                     }
                 }
 
+                pass.push_back(pre_station);
                 pass.push_back(now_station);
                 time_between_station.push_back(
                         pre.cost_time - now.cost_time
                     );
 
-                pre_station = now_station;
+                pre_station = now_station, pre_subway = now_subway;
 
                 if(pre_station == start && pass.size()) {
                     reverse(pass.begin(), pass.end());
@@ -181,6 +182,7 @@ private :
                 }
             }
             reverse(time_between_station.begin(), time_between_station.end());
+            reverse(path.begin(), path.end());
         }
         return ret;
     }
@@ -268,6 +270,9 @@ public :
                 continue;
             }
 
+           //  for(size_t i = 0; i < station_time.size(); ++i)
+           //      cout << (station_time[i].first == station_distance[i].first) << endl;
+
             check_reverse(station_time, station_distance);
             int num_station = station_time.size();
 
@@ -336,14 +341,15 @@ public :
                     &interchange = now.interchange;
                 double &distance = now.distance;
                 cost_time = pre_state.cost_time + e.cost_time;
-                distance = pre_state.distance + e.distance;
+                distance = pre_state.distance;
                 cost_money = pre_state.cost_money;
                 now.real_distance = pre_state.real_distance;
-                if(now_subway != pre_subway)
+                interchange = pre_state.interchange;
+                if(now_subway != pre_subway && pre_subway != "")
                     ++interchange, cost_time += 2;
                 if(now_subway != "APM") distance += e.distance;
                 if(now_subway != pre_subway && now_subway == "APM") {
-                    cost_money = now.get_cost() + 2;
+                    cost_money = now.get_cost() - 2;
                     now.real_distance += now.distance;
                     now.distance = 0.;
                 }
@@ -365,6 +371,8 @@ public :
         Comp comp("Money");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
+        // debug
+        cout << start_name << ' ' << end_name << endl;
         Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
@@ -381,7 +389,6 @@ public :
         Comp comp("Time");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
-        cout << start_name << ' ' << end_name << endl;
         Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
@@ -399,8 +406,6 @@ public :
     }
 
 };
-#undef foreach
-#undef INF
 const char* Metro::SUBWAY_NAME[] = {
     "1",
     "2",
@@ -416,8 +421,21 @@ const char* Metro::SUBWAY_NAME[] = {
 
 int main() {
     Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
-    Response res = metro->query_time(1, 2);
+    vector<pair<int, string> > stations = metro->list_all_stations();
+    // for(int i = 0, len = stations.size(); i < len; ++i)
+    //     cout << stations[i].first << ' ' << stations[i].second << endl;
+    int a, b;
+    cin >> a >> b;
+    Response res = metro->query_money(a, b);
     cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
+    foreach(it, res.path) {
+        cout << it->first;
+        cout << ' ';
+        cout << it->second.front();
+        cout << ' ';
+        cout << it->second.back();
+        cout << endl;
+    }
     return 0;
 }
 
