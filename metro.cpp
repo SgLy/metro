@@ -99,8 +99,6 @@ struct Comp {
 
 class Metro {
 private :
-    static const char* SUBWAY_NAME[];
-
     map<string, int> station_name_index;
     map<int, string> station_index_name;
     map<string, set<string> > subway_stations, station_belong;
@@ -187,6 +185,8 @@ private :
     }
 
 public :
+    static const char* SUBWAY_NAME[];
+
     void read_data(
             const string &filename,
             vector<pair<string, int> > &station_time,
@@ -238,10 +238,9 @@ public :
         }
     }
 
-    Metro(const char **a = SUBWAY_NAME) {
+    Metro(const char **a, int station_number) {
         tot_station = 0;
 
-        int station_number = sizeof(a) / 4;
         // debug
         cout << station_number << endl;
         for(int i = 0; i < station_number; ++i) {
@@ -398,7 +397,7 @@ const char* Metro::SUBWAY_NAME[] = {
 };
 
 int main() {
-    Metro *metro = new Metro();
+    Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
     return 0;
 }
 
