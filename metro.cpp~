@@ -17,10 +17,14 @@ using namespace std;
 #define INF (10001)
 
 struct Response {
-    vector<pair<int, vector<string> > > path;
+    vector<pair<string, vector<string> > > path;
     int money, cost_time;
     double distance;
     vector<int> time_between_station;
+
+    Response() {
+        money = cost_time = 0, distance = 0.;
+    }
 };
 
 struct Edge {
@@ -48,7 +52,7 @@ struct Edge {
 struct State {
     string pre_station;
     int cost_time, cost_money, interchange;
-    double distance;
+    double distance, real_distance;
 
     State(
             const string &pre_station = "",
@@ -62,6 +66,7 @@ struct State {
         cost_money(cost_money),
         interchange(interchange),
         distance(distance) {
+        real_distance = 0.;
     }
 
     int get_cost() const {
@@ -105,6 +110,7 @@ private :
     int get_station_index(string &name) {
         if(station_name_index.find(name) == station_name_index.end()) {
             station_name_index[name] = ++tot_station;
+            station_index_name[tot_station] = name;
         }
         return station_name_index[name];
     }
@@ -126,6 +132,58 @@ private :
             return it->first;
         }
         return "";
+    }
+
+    Response parse_response(
+            map<string, State> &dist, 
+            string &start, 
+            string &end
+            ) {
+        Response ret;
+        int &money = ret.money, &cost_time = ret.cost_time;
+        double &distance = ret.distance;
+        vector<pair<string, vector<string> > > &path = ret.path;
+        vector<int> &time_between_station = ret.time_between_station;
+        if(dist.find(end) == dist.end()) {
+            money = cost_time = INF, distance = INF;
+            path.clear(), time_between_station.clear();
+        } else {
+            money = dist[end].get_cost();
+            cost_time = dist[end].cost_time;
+            distance = dist[end].distance + dist[end].real_distance;
+
+            string pre_subway = "", pre_station = end;
+            vector<string> pass;
+            pass.push_back(end);
+            while(pre_station != start) {
+                State pre = dist[pre_station];
+                string now_station = pre.pre_station;
+                State now = dist[now_station];
+                string now_subway = get_subway_on(now_station, pre_station);
+                if(now_subway != pre_subway && pre_subway != "") {
+                    if(pass.size()) {
+                        reverse(pass.begin(), pass.end());
+                        path.push_back(make_pair(pre_subway, pass));
+                        pass.clear();
+                    }
+                }
+
+                pass.push_back(now_station);
+                time_between_station.push_back(
+                        pre.cost_time - now.cost_time
+                    );
+
+                pre_station = now_station;
+
+                if(pre_station == start && pass.size()) {
+                    reverse(pass.begin(), pass.end());
+                    path.push_back(make_pair(now_subway, pass));
+                    pass.clear();
+                }
+            }
+            reverse(time_between_station.begin(), time_between_station.end());
+        }
+        return ret;
     }
 
 public :
@@ -210,8 +268,9 @@ public :
                        end = station_time[i + 1].first;
                 int time_delta =
                     station_time[i + 1].second - station_time[i].second;
-                double distance = subway_distance[i].second;
+                double distance = station_distance[i].second;
                 graph[start].insert(Edge(start, end, time_delta, distance));
+                graph[end].insert(Edge(end, start, time_delta, distance));
             }
         }
     }
@@ -236,6 +295,11 @@ public :
     }
 
     Response spfa(const string &start, const string &end, const Comp &cmp) {
+        if(start == end) {
+            Response res;
+            return res;
+        }
+
         map<string, State> dist;
         queue<string> que;
         map<string, bool> inque;
@@ -258,13 +322,27 @@ public :
                 cost_time = pre_state.cost_time + e.cost_time;
                 distance = pre_state.distance + e.distance;
                 cost_money = pre_state.cost_money;
-                if(now_subway != pre_subway) ++interchange, cost_time += 2;
+                now.real_distance = pre_state.real_distance;
+                if(now_subway != pre_subway)
+                    ++interchange, cost_time += 2;
                 if(now_subway != "APM") distance += e.distance;
                 if(now_subway != pre_subway && now_subway == "APM") {
-                    cost_money = now.get_cost();
+                    cost_money = now.get_cost() + 2;
+                    now.real_distance += now.distance;
+                    now.distance = 0.;
+                }
+
+                State nex = dist[e.end];
+                if(cmp(now, nex)) {
+                    dist[e.end] = now;
+                    if(!inque[e.end])
+                        inque[e.end] = true, que.push(e.end);
                 }
             }
         }
+
+        Response path = parse_response(dist, start, end);
+        return path;
     }
 
     Response query_money(const int &start, const int &end) {
