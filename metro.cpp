@@ -194,25 +194,32 @@ public :
         ) {
         station_time.clear(), station_distance.clear();
 
-        ifstream in(filename.c_str());
+        ifstream in(filename.c_str(), ios::in);
         string line_data;
-        while(in >> line_data) {
+        while(getline(in, line_data)) {
             if((int) line_data.size() <= 0) break;
-            string name;
+            int pos = line_data.find(' ');
+            string name = line_data.substr(0, pos);
+            string time_number = line_data.substr(pos + 1, line_data.size() - pos);
             int time;
-            stringstream line_in(line_data);
-            line_in >> name >> time;
+            sscanf(time_number.c_str(), "%d", &time);
             station_time.push_back(make_pair(name, time));
         }
-        while(in >> line_data) {
+        while(getline(in, line_data)) {
             if((int) line_data.size() <= 0) break;
+            double distance = 0.;
             string name;
-            double distance;
-            stringstream line_in(line_data);
             if(line_data.find(' ') == string::npos)
-                line_in >> name, distance = 0.;
-            else line_in >> name >> distance;
-            station_time.push_back(make_pair(name, distance));
+                name = line_data;
+            else {
+                int pos = line_data.find(' ');
+                name = line_data.substr(0, pos);
+                string distance_number = line_data.substr(pos + 1, line_data.size() - pos);
+                double distance;
+                sscanf(distance_number.c_str(), "%lf", &distance);
+            }
+            station_distance.push_back(make_pair(name, distance));
+            
         }
         in.close();
     }
@@ -247,7 +254,7 @@ public :
             const string subway_name(SUBWAY_NAME[i]);
             vector<pair<string, int> > station_time;
             vector<pair<string, double> > station_distance;
-            read_data(subway_name, station_time, station_distance);
+            read_data("data\\" + subway_name + ".txt", station_time, station_distance);
 
             if(station_time.size() != station_distance.size()) {
                 cout << subway_name << " data format is not valid." << endl;
