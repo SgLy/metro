@@ -215,7 +215,6 @@ public :
                 int pos = line_data.find(' ');
                 name = line_data.substr(0, pos);
                 string distance_number = line_data.substr(pos + 1, line_data.size() - pos);
-                double distance;
                 sscanf(distance_number.c_str(), "%lf", &distance);
             }
             station_distance.push_back(make_pair(name, distance));
@@ -277,6 +276,9 @@ public :
                 double distance = station_distance[i].second;
                 graph[start].insert(Edge(start, end, time_delta, distance));
                 graph[end].insert(Edge(end, start, time_delta, distance));
+
+                get_station_index(start);
+                get_station_index(end);
             }
         }
     }
@@ -405,9 +407,8 @@ const char* Metro::SUBWAY_NAME[] = {
 
 int main() {
     Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
-    Response res = metro->query_time(0, 1);
+    Response res = metro->query_time(1, 2);
     cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
     return 0;
 }
-
 
