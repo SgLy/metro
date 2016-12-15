@@ -1,5 +1,8 @@
-list_all_station()
+vector<pair<int, string> >list_all_station()
 	-> Return all stations' name available(With index).
+
+vector<pair<string, vector<string> > > list_all_subway()
+	->vector<subway_name, vector<station_name> >
 
 struct Response {
 	vector<pair<int, vector<string> > > path; vector<pair<line_index, vector<station_name> > >

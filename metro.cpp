@@ -1,8 +1,9 @@
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <cstring>
 #include <map>
 #include <string>
 #include <vector>
+#include <cmath>
 #include <set>
 #include <queue>
 #include <algorithm>
@@ -11,6 +12,10 @@
 #include <iostream>
 using namespace std;
 
+#define foreach(x, y) \
+    for(__typeof((y).begin()) x = (y).begin(); x != (y).end(); ++x)
+#define INF (10001)
+
 struct Response {
     vector<pair<int, vector<string> > > path;
     int money, cost_time;
@@ -18,85 +23,78 @@ struct Response {
     vector<int> time_between_station;
 };
 
+struct Edge {
+    string start, end;
+    int cost_time;
+    double distance;
+
+    Edge(
+            const string &start, 
+            const string &end, 
+            const int &cost_time,
+            const double &distance
+        ) :  
+        start(start), 
+        end(end), 
+        cost_time(cost_time),
+        distance(distance) {
+    }
+
+    bool operator <(const Edge &t) const {
+        return end < t.end;
+    }
+};
+
+struct State {
+    string pre_station;
+    int cost_time, cost_money, interchange;
+    double distance;
+
+    State(
+            const string &pre_station = "",
+            const int &cost_time = INF,
+            const int &cost_money = INF,
+            const int &interchange = INF,
+            const double &distance = INF
+        ):
+        pre_station(pre_station),
+        cost_time(cost_time),
+        cost_money(cost_money),
+        interchange(interchange),
+        distance(distance) {
+    }
+
+    int get_cost() const {
+        int ret = cost_money + 2;
+        const double EPS = 1e-5;
+        if(distance > 4. + EPS)
+            ret += ceil((min(distance, 12.) - EPS) / 4.);
+        if(distance > 12. + EPS)
+            ret += ceil((min(distance, 24.) - EPS) / 6.);
+        if(distance > 24. + EPS)
+            ret += ceil((distance - EPS) / 8.);
+        return ret;
+    }
+};
+
+struct Comp {
+    string dominate;
+
+    Comp(const char *dominate):dominate(dominate) {}
+
+    bool operator ()(const State &a, const State &b) {
+        if(dominate == "Distance" || dominate == "distance")
+            return a.distance < b.distance;
+        if(dominate == "Money" || dominate == "money")
+            return a.get_cost() < b.get_cost();
+        return a.cost_time < b.cost_time;
+    }
+};
+
+
 class Metro {
-#define foreach(x, y) \
-    for(__typeof((y).begin()) x = (y).begin(); x != (y).end(); ++x)
-#define INF (10001)
 private :
     static const char* SUBWAY_NAME[];
-
-    struct Edge {
-        string start, end;
-        int cost_time;
-        double distance;
-
-        Edge(
-                const string &start, 
-                const string &end, 
-                const int &cost_time,
-                const double &distance
-            ) :  
-            start(start), 
-            end(end), 
-            cost_time(cost_time),
-            distance(distance) {
-        }
-
-        bool operator <(const Edge &t) const {
-            return end < t.end;
-        }
-    };
-
-    struct State {
-        string pre_station, pre_subway, on_subway;
-        int cost_time, cost_money, interchange;
-        double distance;
-
-        State() {
-            cost_time = cost_money = interchange = INF;
-            pre_station = pre_subway = on_subway = "";
-        }
-
-        State(
-                const string &pre, const string &on_subway
-                const int &cost_time,
-                const int &cost_money,
-                const int &interchange,
-                const double &distance
-            ):
-            pre(pre), on_subway(on_subway),
-            cost_time(cost_time),
-            cost_money(cost_money),
-            interchange(interchange),
-            distance(distance) {
-        }
-
-        int get_cost() const {
-            int ret = cost_money + 2;
-            const double EPS = 1e-5;
-            if(distance > 4. + EPS)
-                ret += ceil((min(distance, 12.) - EPS) / 4.);
-            if(distance > 12. + EPS)
-                ret += ceil((min(distance, 24.) - EPS) / 6.);
-            if(distance > 24. + EPS)
-                ret += ceil((distance - EPS) / 8.);
-            return ret;
-        }
-    };
-
-    struct Comp {
-        string dominate;
-
-        Comp(dominate):dominate(dominate) {}
-
-        bool operator ()(const State &a, const State &b) {
-            if(dominate == "Distance" || dominate == "distance")
-                return a.distance < b.distance;
-            if(dominate == "Money" || dominate == "money")
-                return a.get_cost() < b.get_cost();
-            return a.cost_time < b.cost_time;
-        }
-    };
 
     map<string, int> station_name_index;
     map<int, string> station_index_name;
@@ -104,10 +102,30 @@ private :
     map<string, set<Edge> > graph;
     int tot_station;
 
-    int get_station_index(const string &name) {
-        if(station_name_index.find(name) == station_name_index.end())
+    int get_station_index(string &name) {
+        if(station_name_index.find(name) == station_name_index.end()) {
             station_name_index[name] = ++tot_station;
+        }
         return station_name_index[name];
+    }
+
+    string get_subway_on(const Edge &e) {
+        string a = e.start, b = e.end;
+        foreach(it, subway_stations) {
+            if(it->second.find(a) == it->second.end()) continue;
+            if(it->second.find(b) == it->second.end()) continue;
+            return it->first;
+        }
+        return "";
+    }
+
+    string get_subway_on(string &a, string &b) {
+        foreach(it, subway_stations) {
+            if(it->second.find(a) == it->second.end()) continue;
+            if(it->second.find(b) == it->second.end()) continue;
+            return it->first;
+        }
+        return "";
     }
 
 public :
@@ -143,10 +161,10 @@ public :
 
     void check_reverse(
             vector<pair<string, int> > &station_time,
-            vector<pair<string, double> > &station_distance
+            vector<pair<string, double> > &station_distance) {
 
-        if(station_distance.begin()->first != 
-                station_time.begin()->first) {
+        if((station_distance.begin())->first != 
+                (station_time.begin())->first) {
             vector<pair<string, double> > temp;
             for(int i = station_time.size() - 1; i >= 0; --i)
                 if(i) temp.push_back(make_pair(
@@ -175,7 +193,7 @@ public :
             read_data(subway_name, station_time, station_distance);
 
             if(station_time.size() != station_distance.size()) {
-                cout << filename << " data format is not valid." << endl;
+                cout << subway_name << " data format is not valid." << endl;
                 continue;
             }
 
@@ -185,23 +203,35 @@ public :
             set<string> &subway_contain = subway_stations[subway_name];
             subway_contain.clear();
             foreach(it, station_time)
-                subway_contian.insert(it->first),
+                subway_contain.insert(it->first),
                 station_belong[it->first].insert(subway_name);
             for(int i = 0; i < num_station - 1; ++i) {
                 string start = station_time[i].first,
                        end = station_time[i + 1].first;
                 int time_delta =
-                    station_time[i + 1].second - station_time[i].time;
-                double distance = station_distance[i];
+                    station_time[i + 1].second - station_time[i].second;
+                double distance = station_distance[i].second;
                 graph[start].insert(Edge(start, end, time_delta, distance));
             }
         }
     }
 
-    vector<pair<int, string> > list_all_stations() const {
+    vector<pair<int, string> > list_all_stations() {
         vector<pair<int, string> > ret;
         foreach(it, station_index_name)
             ret.push_back(make_pair(it->first, it->second));
+        return ret;
+    }
+
+    vector<pair<string, vector<string> > > list_all_subway() {
+        vector<pair<string, vector<string> > > ret;
+        foreach(it, subway_stations) {
+            string subway_name = it->first;
+            int num_stations = it->second.size();
+            vector<string> stations(num_stations);
+            copy(it->second.begin(), it->second.end(), stations.begin());
+            ret.push_back(make_pair(subway_name, stations));
+        }
         return ret;
     }
 
@@ -215,26 +245,45 @@ public :
         while(!que.empty()) {
             string u = que.front();
             que.pop(), inque[u] = false;
+            State pre_state = dist[u];
+            string pre_subway = get_subway_on(pre_state.pre_station, u);
+            foreach(sub, graph[u]) {
+                Edge e = *sub;
+                string now_subway = get_subway_on(e);
+                State now(u);
+                int &cost_time = now.cost_time,
+                    &cost_money = now.cost_money,
+                    &interchange = now.interchange;
+                double &distance = now.distance;
+                cost_time = pre_state.cost_time + e.cost_time;
+                distance = pre_state.distance + e.distance;
+                cost_money = pre_state.cost_money;
+                if(now_subway != pre_subway) ++interchange, cost_time += 2;
+                if(now_subway != "APM") distance += e.distance;
+                if(now_subway != pre_subway && now_subway == "APM") {
+                    cost_money = now.get_cost();
+                }
+            }
         }
     }
 
-    Response query_money(const int &start, const int &end) const {
+    Response query_money(const int &start, const int &end) {
         Comp comp("Money");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
-        Reponse ret = spfa(start_name, end_name, comp);
+        Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
 
-    Response query_distance(const int &start, const int &end) const {
+    Response query_distance(const int &start, const int &end) {
         Comp comp("Distance");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
-        Reponse ret = spfa(start_name, end_name, comp);
+        Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
 
-    Response query_time(const int &start, const int &end) const {
+    Response query_time(const int &start, const int &end) {
         Comp comp("Time");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
@@ -242,21 +291,21 @@ public :
         return ret;
     }
 
-    int query_station_index(const string &name) const {
+    int query_station_index(const string &name) {
         if(station_name_index.find(name) != station_name_index.end())
             return station_name_index[name];
         return -1;
     }
 
-    string query_station_name(const int &index) const {
+    string query_station_name(const int &index) {
         if(station_index_name.find(index) != station_index_name.end())
             return station_index_name[index];
         return "";
     }
 
+};
 #undef foreach
 #undef INF
-};
 const char* Metro::SUBWAY_NAME[] = {
     "1",
     "2",
