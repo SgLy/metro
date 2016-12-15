@@ -6,151 +6,273 @@
 #include <set>
 #include <queue>
 #include <algorithm>
+#include <fstream>
+#include <sstream>
+#include <iostream>
+using namespace std;
 
-using std::map;
-using std::vector;
-using std::string;
-using std::pair;
-using std::make_pair;
-using std::set;
-using std::queue;
-
-class Metro {
-public:
-    Metro(vector<string> file)
-    {
-        char file_address[100], station_name[100];
-        int time, last_time, last_station;
-        station_count = 0;
-        for (auto filename: file) {
-            sprintf(file_address, "data/%s.txt", filename.c_str());
-            FILE * f = fopen(file_address, "r");
-            last_time = last_station = -1;
-            while (fscanf(f, "%s%d", station_name, &time) != EOF) {
-                auto it = station_index.find(station_name);
-                int this_station;
-                if (it == station_index.end()) {
-                    station_index[station_name] = this_station = station_count++;
-                    stations.push_back(station_name);
-                    edges.push_back(vector<pair<int, int> >());
-                    station_line.push_back(set<string>{filename});
-                } else {
-                    this_station = it->second;
-                    station_line[this_station].insert(filename);
-                }
-                if (last_station != -1) {
-                    edges[last_station].push_back(make_pair(this_station, time - last_time));
-                    edges[this_station].push_back(make_pair(last_station, time - last_time));
-                }
-                last_time = time;
-                last_station = this_station;
-            }
-            fclose(f);
-        }
-    }
-
-    void listAll()
-    {
-        for (size_t i = 0; i < stations.size(); ++i) {
-            printf("%3lu %s\n", i, stations[i].c_str());
-            printf("    Line ");
-            for (auto l: station_line[i])
-                printf("%s ", l.c_str());
-            printf("\n");
-            for (auto s: edges[i])
-                printf("      %2d mins to %s\n", s.second, stations[s.first].c_str());
-        }
-    }
-
-    int queryCost(string src, string dest)
-    {
-        int s = station_index[src];
-        int t = station_index[dest];
-        return query(s, t).first;
-    }
-
-    vector<string> queryRoute(string src, string dest)
-    {
-        int s = station_index[src];
-        int t = station_index[dest];
-        vector<string> result;
-        for (auto i: query(s, t).second)
-            result.push_back(stations[i]);
-        return result;
-    }
-
-    pair<int, vector<int> > query(int s, int t)
-    {
-        bool * inqueue = new bool[station_count];
-        int * distance = new int[station_count];
-        int * from_station = new int[station_count];
-        memset(inqueue, 0, sizeof(bool) * station_count);
-        memset(distance, 127, sizeof(int) * station_count);
-        memset(from_station, 255, sizeof(int) * station_count);
-        queue<int> q;
-        inqueue[s] = true;
-        distance[s] = 0;
-        q.push(s);
-        while (!q.empty()) {
-            int current_station = q.front();
-            q.pop();
-            for (auto edge: edges[current_station]) {
-                int next_station = edge.first;
-                int cost = edge.second;
-                if (from_station[current_station] != -1)
-                    if (!shareSameLine(from_station[current_station], next_station))
-                        cost += change_line_cost;
-                if (distance[next_station] > distance[current_station] + cost) {
-                    distance[next_station] = distance[current_station] + cost;
-                    from_station[next_station] = current_station;
-                    if (!inqueue[next_station]) {
-                        inqueue[next_station] = true;
-                        q.push(next_station);
-                    }
-                }
-            }
-        }
-        int cost = distance[t];
-        vector<int> route;
-        int station = t;
-        while (station != -1) {
-            route.push_back(station);
-            station = from_station[station];
-        }
-        std::reverse(route.begin(), route.end());
-        delete[] inqueue;
-        delete[] distance;
-        delete[] from_station;
-        return make_pair(cost, route);
-    }
-
-private:
-    const int change_line_cost = 5;
-    int station_count;
-    map<string, int> station_index;
-    vector<string> stations;
-    vector<set<string> > station_line;
-    vector<vector<pair<int, int> > > edges;
-
-    bool shareSameLine(int station_A, int station_B)
-    {
-        auto lines_A = station_line[station_A];
-        auto lines_B = station_line[station_B];
-        set<string> common_lines;
-        std::set_intersection(lines_A.begin(), lines_A.end(),
-                              lines_B.begin(), lines_B.end(),
-                              std::inserter(common_lines, common_lines.begin()));
-        return !common_lines.empty();
-    }
+struct Response {
+    vector<pair<int, vector<string> > > path;
+    int money, cost_time;
+    double distance;
+    vector<int> time_between_station;
 };
 
-int main()
-{
-    Metro metro({"1", "2", "3", "3_North", "4", "5", "6", "8", "GuangFo", "APM"});
-    metro.listAll();
-    printf("%d\n", metro.queryCost("大学城北", "机场南"));
-    for (auto s: metro.queryRoute("大学城北", "机场南"))
-        printf("%s ", s.c_str());
+class Metro {
+#define foreach(x, y) \
+    for(__typeof((y).begin()) x = (y).begin(); x != (y).end(); ++x)
+#define INF (10001)
+private :
+    static const char* SUBWAY_NAME[];
+
+    struct Edge {
+        string start, end;
+        int cost_time;
+        double distance;
+
+        Edge(
+                const string &start, 
+                const string &end, 
+                const int &cost_time,
+                const double &distance
+            ) :  
+            start(start), 
+            end(end), 
+            cost_time(cost_time),
+            distance(distance) {
+        }
+
+        bool operator <(const Edge &t) const {
+            return end < t.end;
+        }
+    };
+
+    struct State {
+        string pre_station, pre_subway, on_subway;
+        int cost_time, cost_money, interchange;
+        double distance;
+
+        State() {
+            cost_time = cost_money = interchange = INF;
+            pre_station = pre_subway = on_subway = "";
+        }
+
+        State(
+                const string &pre, const string &on_subway
+                const int &cost_time,
+                const int &cost_money,
+                const int &interchange,
+                const double &distance
+            ):
+            pre(pre), on_subway(on_subway),
+            cost_time(cost_time),
+            cost_money(cost_money),
+            interchange(interchange),
+            distance(distance) {
+        }
+
+        int get_cost() const {
+            int ret = cost_money + 2;
+            const double EPS = 1e-5;
+            if(distance > 4. + EPS)
+                ret += ceil((min(distance, 12.) - EPS) / 4.);
+            if(distance > 12. + EPS)
+                ret += ceil((min(distance, 24.) - EPS) / 6.);
+            if(distance > 24. + EPS)
+                ret += ceil((distance - EPS) / 8.);
+            return ret;
+        }
+    };
+
+    struct Comp {
+        string dominate;
+
+        Comp(dominate):dominate(dominate) {}
+
+        bool operator ()(const State &a, const State &b) {
+            if(dominate == "Distance" || dominate == "distance")
+                return a.distance < b.distance;
+            if(dominate == "Money" || dominate == "money")
+                return a.get_cost() < b.get_cost();
+            return a.cost_time < b.cost_time;
+        }
+    };
+
+    map<string, int> station_name_index;
+    map<int, string> station_index_name;
+    map<string, set<string> > subway_stations, station_belong;
+    map<string, set<Edge> > graph;
+    int tot_station;
+
+    int get_station_index(const string &name) {
+        if(station_name_index.find(name) == station_name_index.end())
+            station_name_index[name] = ++tot_station;
+        return station_name_index[name];
+    }
+
+public :
+    void read_data(
+            const string &filename,
+            vector<pair<string, int> > &station_time,
+            vector<pair<string, double> > &station_distance
+        ) {
+        station_time.clear(), station_distance.clear();
+
+        ifstream in(filename.c_str());
+        string line_data;
+        while(in >> line_data) {
+            if((int) line_data.size() <= 0) break;
+            string name;
+            int time;
+            stringstream line_in(line_data);
+            line_in >> name >> time;
+            station_time.push_back(make_pair(name, time));
+        }
+        while(in >> line_data) {
+            if((int) line_data.size() <= 0) break;
+            string name;
+            double distance;
+            stringstream line_in(line_data);
+            if(line_data.find(' ') == string::npos)
+                line_in >> name, distance = 0.;
+            else line_in >> name >> distance;
+            station_time.push_back(make_pair(name, distance));
+        }
+        in.close();
+    }
+
+    void check_reverse(
+            vector<pair<string, int> > &station_time,
+            vector<pair<string, double> > &station_distance
+
+        if(station_distance.begin()->first != 
+                station_time.begin()->first) {
+            vector<pair<string, double> > temp;
+            for(int i = station_time.size() - 1; i >= 0; --i)
+                if(i) temp.push_back(make_pair(
+                            station_distance[i].first,
+                            station_distance[i - 1].second
+                        ));
+                else temp.push_back(make_pair(
+                            station_distance[i].first,
+                            0.
+                        ));
+
+            station_distance = temp;
+        }
+    }
+
+    Metro(const char **a = SUBWAY_NAME) {
+        tot_station = 0;
+
+        int station_number = sizeof(a) / 4;
+        // debug
+        cout << station_number << endl;
+        for(int i = 0; i < station_number; ++i) {
+            const string subway_name(SUBWAY_NAME[i]);
+            vector<pair<string, int> > station_time;
+            vector<pair<string, double> > station_distance;
+            read_data(subway_name, station_time, station_distance);
+
+            if(station_time.size() != station_distance.size()) {
+                cout << filename << " data format is not valid." << endl;
+                continue;
+            }
+
+            check_reverse(station_time, station_distance);
+            int num_station = station_time.size();
+
+            set<string> &subway_contain = subway_stations[subway_name];
+            subway_contain.clear();
+            foreach(it, station_time)
+                subway_contian.insert(it->first),
+                station_belong[it->first].insert(subway_name);
+            for(int i = 0; i < num_station - 1; ++i) {
+                string start = station_time[i].first,
+                       end = station_time[i + 1].first;
+                int time_delta =
+                    station_time[i + 1].second - station_time[i].time;
+                double distance = station_distance[i];
+                graph[start].insert(Edge(start, end, time_delta, distance));
+            }
+        }
+    }
+
+    vector<pair<int, string> > list_all_stations() const {
+        vector<pair<int, string> > ret;
+        foreach(it, station_index_name)
+            ret.push_back(make_pair(it->first, it->second));
+        return ret;
+    }
+
+    Response spfa(const string &start, const string &end, const Comp &cmp) {
+        map<string, State> dist;
+        queue<string> que;
+        map<string, bool> inque;
+
+        dist[start] = State("", 0, 0, 0, 0.);
+        que.push(start), inque[start] = true;
+        while(!que.empty()) {
+            string u = que.front();
+            que.pop(), inque[u] = false;
+        }
+    }
+
+    Response query_money(const int &start, const int &end) const {
+        Comp comp("Money");
+        string start_name = query_station_name(start),
+               end_name = query_station_name(end);
+        Reponse ret = spfa(start_name, end_name, comp);
+        return ret;
+    }
+
+    Response query_distance(const int &start, const int &end) const {
+        Comp comp("Distance");
+        string start_name = query_station_name(start),
+               end_name = query_station_name(end);
+        Reponse ret = spfa(start_name, end_name, comp);
+        return ret;
+    }
+
+    Response query_time(const int &start, const int &end) const {
+        Comp comp("Time");
+        string start_name = query_station_name(start),
+               end_name = query_station_name(end);
+        Response ret = spfa(start_name, end_name, comp);
+        return ret;
+    }
+
+    int query_station_index(const string &name) const {
+        if(station_name_index.find(name) != station_name_index.end())
+            return station_name_index[name];
+        return -1;
+    }
+
+    string query_station_name(const int &index) const {
+        if(station_index_name.find(index) != station_index_name.end())
+            return station_index_name[index];
+        return "";
+    }
+
+#undef foreach
+#undef INF
+};
+const char* Metro::SUBWAY_NAME[] = {
+    "1",
+    "2",
+    "3",
+    "3_North",
+    "4",
+    "5",
+    "6",
+    "8",
+    "GuangFo",
+    "APM"
+};
+
+int main() {
+    Metro *metro = new Metro();
     return 0;
 }
+
 
