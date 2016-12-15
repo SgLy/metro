@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <iomanip>
 #include <cstring>
 #include <map>
 #include <string>
@@ -195,6 +196,7 @@ public :
         station_time.clear(), station_distance.clear();
 
         ifstream in(filename.c_str(), ios::in);
+        // ofstream out((filename + ".out").c_str(), ios::out);
         string line_data;
         while(getline(in, line_data)) {
             if((int) line_data.size() <= 0) break;
@@ -204,7 +206,11 @@ public :
             int time;
             sscanf(time_number.c_str(), "%d", &time);
             station_time.push_back(make_pair(name, time));
+            // foreach(c, name) out << hex << ((int) *c) << ' ';
+            // out << endl;
+            // out << name << ' ' << time << endl;
         }
+        // out << flush;
         while(getline(in, line_data)) {
             if((int) line_data.size() <= 0) break;
             double distance = 0.;
@@ -218,7 +224,9 @@ public :
                 sscanf(distance_number.c_str(), "%lf", &distance);
             }
             station_distance.push_back(make_pair(name, distance));
-            
+            // foreach(c, name) out << hex << ((int) *c) << ' ';
+            // out << endl;
+            // out << name << ' ' << distance << endl;
         }
         in.close();
     }
@@ -373,6 +381,7 @@ public :
         Comp comp("Time");
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
+        cout << start_name << ' ' << end_name << endl;
         Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
