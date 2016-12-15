@@ -405,6 +405,8 @@ const char* Metro::SUBWAY_NAME[] = {
 
 int main() {
     Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
+    Response res = metro->query_time(0, 1);
+    cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
     return 0;
 }
 

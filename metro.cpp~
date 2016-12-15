@@ -216,7 +216,7 @@ public :
                 name = line_data.substr(0, pos);
                 string distance_number = line_data.substr(pos + 1, line_data.size() - pos);
                 double distance;
-                sscanf(distance_number.c_str(), "%lf", distance);
+                sscanf(distance_number.c_str(), "%lf", &distance);
             }
             station_distance.push_back(make_pair(name, distance));
             
@@ -405,6 +405,7 @@ const char* Metro::SUBWAY_NAME[] = {
 
 int main() {
     Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
+    Response res = metro->query_time(0, 1);
     return 0;
 }
 
