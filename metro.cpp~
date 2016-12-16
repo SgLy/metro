@@ -1,21 +1,31 @@
 #include <cstdio>
-#include <iomanip>
 #include <cstring>
 #include <map>
 #include <string>
 #include <vector>
-#include <cmath>
 #include <set>
 #include <queue>
-#include <algorithm>
 #include <fstream>
-#include <sstream>
+#include <algorithm>
 #include <iostream>
-using namespace std;
+#include <cmath>
+using std::map;
+using std::string;
+using std::ifstream;
+using std::set;
+using std::queue;
+using std::vector;
+using std::pair;
+using std::cout;
+using std::endl;
+using std::min;
 
 #define foreach(x, y) \
     for(__typeof((y).begin()) x = (y).begin(); x != (y).end(); ++x)
 #define INF (10001)
+/**
+ * For metro usage, 10001 is large enough.
+ * */
 
 struct Response {
     /**
@@ -262,6 +272,62 @@ private :
         return ret;
     }
 
+    Response spfa(string &start, string &end, Comp &cmp) {
+        /**
+         * Shortest path algorithm.
+         * */
+        if(start == end) {
+            Response res;
+            return res;
+        }
+
+        map<string, State> dist;
+        queue<string> que;
+        map<string, bool> inque;
+
+        dist[start] = State("", 0, 0, 0, 0.);
+        que.push(start), inque[start] = true;
+        while(!que.empty()) {
+            string u = que.front();
+            que.pop(), inque[u] = false;
+            State pre_state = dist[u];
+            string pre_subway = get_subway_on(pre_state.pre_station, u);
+            foreach(sub, graph[u]) {
+                Edge e = *sub;
+                string now_subway = get_subway_on(e);
+                State now(u);
+                int &cost_time = now.cost_time,
+                    &cost_money = now.cost_money,
+                    &interchange = now.interchange;
+                double &distance = now.distance, &real_distance = now.real_distance;
+                cost_time = pre_state.cost_time + e.cost_time;
+                distance = pre_state.distance;
+                cost_money = pre_state.cost_money;
+                real_distance = pre_state.real_distance;
+                interchange = pre_state.interchange;
+                if(now_subway != pre_subway && pre_subway != "")
+                    ++interchange, cost_time += 2;
+                if(now_subway != "APM") distance += e.distance;
+                else real_distance += e.distance;
+                if(now_subway != pre_subway && now_subway == "APM") {
+                    cost_money = now.get_cost() - 2;
+                    now.real_distance += now.distance;
+                    now.distance = 0.;
+                }
+
+                State nex = dist[e.end];
+                if(cmp(now, nex)) {
+                    dist[e.end] = now;
+                    if(!inque[e.end])
+                        inque[e.end] = true, que.push(e.end);
+                }
+            }
+        }
+
+        Response path = parse_response(dist, start, end);
+        return path;
+    }
+
 public :
     static const char* SUBWAY_NAME[];
 
@@ -279,7 +345,7 @@ public :
          * */
         station_time.clear(), station_distance.clear();
 
-        ifstream in(filename.c_str(), ios::in);
+        ifstream in(filename.c_str());
         string line_data;
         while(getline(in, line_data)) {
             if((int) line_data.size() <= 0) break;
@@ -340,8 +406,6 @@ public :
          *             suggested.
          * */
 
-        // debug
-        cout << station_number << endl;
         for(int i = 0; i < station_number; ++i) {
             const string subway_name(subway_name_list[i]);
             vector<pair<string, int> > station_time;
@@ -352,9 +416,6 @@ public :
                 cout << subway_name << " data format is not valid." << endl;
                 continue;
             }
-
-           //  for(size_t i = 0; i < station_time.size(); ++i)
-           //      cout << (station_time[i].first == station_distance[i].first) << endl;
 
             check_reverse(station_time, station_distance);
             int num_station = station_time.size();
@@ -380,6 +441,9 @@ public :
     }
 
     vector<pair<int, string> > list_all_stations() {
+        /**
+         * Return a vector contains all the stations supported with index and its name.
+         * */
         vector<pair<int, string> > ret;
         foreach(it, station_index_name)
             ret.push_back(make_pair(it->first, it->second));
@@ -387,6 +451,9 @@ public :
     }
 
     vector<pair<string, vector<string> > > list_all_subway() {
+        /**
+         * Return a vector contains all the subway with its stations.
+         * */
         vector<pair<string, vector<string> > > ret;
         foreach(it, subway_stations) {
             string subway_name = it->first;
@@ -398,88 +465,58 @@ public :
         return ret;
     }
 
-    Response spfa(string &start, string &end, Comp &cmp) {
-        if(start == end) {
-            Response res;
-            return res;
-        }
-
-        map<string, State> dist;
-        queue<string> que;
-        map<string, bool> inque;
-
-        dist[start] = State("", 0, 0, 0, 0.);
-        que.push(start), inque[start] = true;
-        while(!que.empty()) {
-            string u = que.front();
-            que.pop(), inque[u] = false;
-            State pre_state = dist[u];
-            string pre_subway = get_subway_on(pre_state.pre_station, u);
-            foreach(sub, graph[u]) {
-                Edge e = *sub;
-                string now_subway = get_subway_on(e);
-                State now(u);
-                int &cost_time = now.cost_time,
-                    &cost_money = now.cost_money,
-                    &interchange = now.interchange;
-                double &distance = now.distance, &real_distance = now.real_distance;
-                cost_time = pre_state.cost_time + e.cost_time;
-                distance = pre_state.distance;
-                cost_money = pre_state.cost_money;
-                real_distance = pre_state.real_distance;
-                interchange = pre_state.interchange;
-                if(now_subway != pre_subway && pre_subway != "")
-                    ++interchange, cost_time += 2;
-                if(now_subway != "APM") distance += e.distance;
-                else real_distance += e.distance;
-                if(now_subway != pre_subway && now_subway == "APM") {
-                    cost_money = now.get_cost() - 2;
-                    now.real_distance += now.distance;
-                    now.distance = 0.;
-                }
-
-                State nex = dist[e.end];
-                if(cmp(now, nex)) {
-                    dist[e.end] = now;
-                    if(!inque[e.end])
-                        inque[e.end] = true, que.push(e.end);
-                }
-            }
-        }
-
-        Response path = parse_response(dist, start, end);
-        return path;
-    }
-
     Response query(const int &start, const int &end, const string &dominate) {
+        /**
+         * Query start station to end station with "dominate" considering first.
+         * Dominate: "Time", "Distance", "Interchange", "Money"
+         * */
         Comp comp(dominate.c_str());
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
-        // debug
-        cout << start_name << ' ' << end_name << endl;
+
         Response ret = spfa(start_name, end_name, comp);
         return ret;
     }
 
     Response query_money(const int &start, const int &end) {
+        /**
+         * A old interface, not suggested.
+         * Please use query instead.
+         * */
         return query(start, end, "Money");
     }
 
     Response query_distance(const int &start, const int &end) {
+        /**
+         * A old interface, not suggested.
+         * Please use query instead.
+         * */
         return query(start, end, "Distance");
     }
 
     Response query_time(const int &start, const int &end) {
+        /**
+         * A old interface, not suggested.
+         * Please use query instead.
+         * */
         return query(start, end, "Time");
     }
 
     int query_station_index(const string &name) {
+        /**
+         * Query the corresponding index of the name.
+         * If the name is not considered as a station's name, it return -1.
+         * */
         if(station_name_index.find(name) != station_name_index.end())
             return station_name_index[name];
         return -1;
     }
 
     string query_station_name(const int &index) {
+        /**
+         * Query the corresponding name of the index.
+         * If the index is not a station index, it return empty string "".
+         * */
         if(station_index_name.find(index) != station_index_name.end())
             return station_index_name[index];
         return "";
@@ -487,16 +524,16 @@ public :
 
 };
 const char* Metro::SUBWAY_NAME[] = {
-    "ä¸€å·çº¿",
-    "äºŒå·çº¿",
-    "ä¸‰å·çº¿",
-    "ä¸‰å·çº¿åŒ—å»¶æ®µ",
-    "å››å·çº¿",
-    "å››å·çº¿",
-    "å››å·çº¿",
-    "å››å·çº¿",
-    "GuangFo",
-    "APM"
+    "Ò»ºÅÏß",
+    "¶þºÅÏß",
+    "ÈýºÅÏß",
+    "ÈýºÅÏß±±ÑÓ¶Î",
+    "ËÄºÅÏß",
+    "ÎåºÅÏß",
+    "ÁùºÅÏß",
+    "°ËºÅÏß",
+    "¹ã·ðÏß",
+    "APMÁÐ³µ"
 };
 
 int main() {
@@ -517,5 +554,4 @@ int main() {
     }
     return 0;
 }
-
 

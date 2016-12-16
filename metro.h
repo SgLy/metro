@@ -524,35 +524,15 @@ public :
 
 };
 const char* Metro::SUBWAY_NAME[] = {
-    "Ò»ºÅÏß",
-    "¶şºÅÏß",
-    "ÈıºÅÏß",
-    "ÈıºÅÏß±±ÑÓ¶Î",
-    "ËÄºÅÏß",
-    "ÎåºÅÏß",
-    "ÁùºÅÏß",
-    "°ËºÅÏß",
-    "¹ã·ğÏß",
-    "APMÁĞ³µ"
+    "ä¸€å·çº¿",
+    "äºŒå·çº¿",
+    "ä¸‰å·çº¿",
+    "ä¸‰å·çº¿åŒ—å»¶æ®µ",
+    "å››å·çº¿",
+    "äº”å·çº¿",
+    "å…­å·çº¿",
+    "å…«å·çº¿",
+    "å¹¿ä½›çº¿",
+    "APMåˆ—è½¦"
 };
-
-using std::cin;
-int main() {
-    Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
-    vector<pair<int, string> > stations = metro->list_all_stations();
-    for(int i = 0, len = stations.size(); i < len; ++i)
-        cout << stations[i].first << ' ' << stations[i].second << endl;
-    int a, b;
-    cin >> a >> b;
-    Response res = metro->query_time(a, b);
-    cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
-    foreach(it, res.path) {
-        cout << it->first;
-        cout << ": ";
-        foreach(i, it->second)
-            cout << *i << ' ';
-        cout << endl;
-    }
-    return 0;
-}
 
