@@ -2,11 +2,11 @@ CXX = g++
 DEBUG_FLAG = -g3 -Wall
 RELEASE_FLAG = -O2
 
-debug: metro.cpp
-	$(CXX) metro.cpp -o metro $(DEBUG_FLAG)
+debug: main.cpp
+	$(CXX) main.cpp -o main $(DEBUG_FLAG)
 
-release: metro.cpp
-	$(CXX) metro.cpp -o metro $(RELEASE_FLAG)
+release: main.cpp
+	$(CXX) main.cpp -o main $(RELEASE_FLAG)
 
 clean:
-	rm metro
+	rm main

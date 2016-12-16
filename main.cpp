@@ -2,11 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "metro.cpp"
+#include "metro.h"
 
 #ifdef WIN32
 #include <Windows.h>
-#include <WinBase.h>
 #else
 #include <unistd.h>
 #endif
@@ -22,7 +21,7 @@ void clearScreen()
 
 void milliSleep(size_t ms) {
     #ifdef WIN32
-    sleep(ms);
+    Sleep(ms);
     #else
     timespec ts;
     ts.tv_sec = ms / 1000;
@@ -88,7 +87,7 @@ void action1(Metro * metro)
         printf("  Line %s:\n", allLines[i].first.c_str());
         vector<string> &allStations = allLines[i].second;
         for (size_t j = 0; j < allStations.size(); ++j)
-            printf("    Station %2lu: %s\n", j + 1, allStations[j].c_str());
+            printf("    Station %2u: %s\n", j + 1, allStations[j].c_str());
         if (i != allLines.size() - 1) {
             printf("\n  ENTER to next line...\n");
             enterConfirm();
@@ -105,7 +104,7 @@ int pickStation(const char msg[], Metro * metro)
     bigLine();
     vector< pair< string, vector<string> > > allLines =  metro->list_all_subway();
     for (size_t i = 0; i < allLines.size(); ++i)
-        printf("  %lu. Line %s\n", i + 1, allLines[i].first.c_str());
+        printf("  %u. Line %s\n", i + 1, allLines[i].first.c_str());
     smallLine();
     int line;
     while (true) {
@@ -121,7 +120,7 @@ int pickStation(const char msg[], Metro * metro)
     printf("  (%2d) Line %s\n\n", line, allLines[line - 1].first.c_str());
     vector<string> &allStations = allLines[line - 1].second;
     for (size_t i = 0; i < allStations.size(); ++i)
-        printf("  %lu. %s\n", i + 1, allStations[i].c_str());
+        printf("  %u. %s\n", i + 1, allStations[i].c_str());
     smallLine();
     int station;
     while (true) {
