@@ -428,8 +428,7 @@ int main() {
         cout << stations[i].first << ' ' << stations[i].second << endl;
     int a, b;
     cin >> a >> b;
-    test("Money", a, b);
-    Response res = metro->query_money(a, b);
+    Response res = metro->query_time(a, b);
     cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
     foreach(it, res.path) {
         cout << it->first;
@@ -441,4 +440,5 @@ int main() {
     }
     return 0;
 }
+*/
 

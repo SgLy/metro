@@ -6,6 +6,7 @@
 
 #ifdef WIN32
 #include <Windows.h>
+#include <WinBase.h>
 #else
 #include <unistd.h>
 #endif
