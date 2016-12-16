@@ -240,9 +240,9 @@ private :
                         path.push_back(make_pair(pre_subway, pass));
                         pass.clear();
                     }
+                    pass.push_back(pre_station);
                 }
 
-                pass.push_back(pre_station);
                 pass.push_back(now_station);
                 time_between_station.push_back(
                         pre.cost_time - now.cost_time
@@ -510,10 +510,9 @@ int main() {
     cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
     foreach(it, res.path) {
         cout << it->first;
-        cout << ' ';
-        cout << it->second.front();
-        cout << ' ';
-        cout << it->second.back();
+        cout << ": ";
+        foreach(i, it->second)
+            cout << *i << ' ';
         cout << endl;
     }
     return 0;
