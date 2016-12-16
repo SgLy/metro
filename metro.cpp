@@ -81,6 +81,11 @@ struct State {
             ret += ceil((distance - 24. - EPS) / 8.);
         return ret;
     }
+
+    double get_distance() const {
+        double ret = distance + real_distance;
+        return ret;
+    }
 };
 
 struct Comp {
@@ -90,7 +95,7 @@ struct Comp {
 
     bool operator ()(const State &a, const State &b) {
         if(dominate == "Distance" || dominate == "distance")
-            return a.distance < b.distance;
+            return a.get_distance() < b.get_distance();
         if(dominate == "Money" || dominate == "money")
             return a.get_cost() < b.get_cost();
         return a.cost_time < b.cost_time;
@@ -149,7 +154,7 @@ private :
         } else {
             money = dist[end].get_cost();
             cost_time = dist[end].cost_time;
-            distance = dist[end].distance + dist[end].real_distance;
+            distance = dist[end].get_distance();
 
             string pre_subway = "", pre_station = end;
             vector<string> pass;
@@ -339,15 +344,16 @@ public :
                 int &cost_time = now.cost_time,
                     &cost_money = now.cost_money,
                     &interchange = now.interchange;
-                double &distance = now.distance;
+                double &distance = now.distance, &real_distance = now.real_distance;
                 cost_time = pre_state.cost_time + e.cost_time;
                 distance = pre_state.distance;
                 cost_money = pre_state.cost_money;
-                now.real_distance = pre_state.real_distance;
+                real_distance = pre_state.real_distance;
                 interchange = pre_state.interchange;
                 if(now_subway != pre_subway && pre_subway != "")
                     ++interchange, cost_time += 2;
                 if(now_subway != "APM") distance += e.distance;
+                else real_distance += e.distance;
                 if(now_subway != pre_subway && now_subway == "APM") {
                     cost_money = now.get_cost() - 2;
                     now.real_distance += now.distance;
@@ -367,8 +373,8 @@ public :
         return path;
     }
 
-    Response query_money(const int &start, const int &end) {
-        Comp comp("Money");
+    Response query(const int &start, const int &end, const string &dominate) {
+        Comp comp(dominate.c_str());
         string start_name = query_station_name(start),
                end_name = query_station_name(end);
         // debug
@@ -377,20 +383,16 @@ public :
         return ret;
     }
 
+    Response query_money(const int &start, const int &end) {
+        return query(start, end, "Money");
+    }
+
     Response query_distance(const int &start, const int &end) {
-        Comp comp("Distance");
-        string start_name = query_station_name(start),
-               end_name = query_station_name(end);
-        Response ret = spfa(start_name, end_name, comp);
-        return ret;
+        return query(start, end, "Distance");
     }
 
     Response query_time(const int &start, const int &end) {
-        Comp comp("Time");
-        string start_name = query_station_name(start),
-               end_name = query_station_name(end);
-        Response ret = spfa(start_name, end_name, comp);
-        return ret;
+        return query(start, end, "Time");
     }
 
     int query_station_index(const string &name) {
@@ -422,11 +424,11 @@ const char* Metro::SUBWAY_NAME[] = {
 int main() {
     Metro *metro = new Metro(Metro::SUBWAY_NAME, 10);
     vector<pair<int, string> > stations = metro->list_all_stations();
-    // for(int i = 0, len = stations.size(); i < len; ++i)
-    //     cout << stations[i].first << ' ' << stations[i].second << endl;
+    for(int i = 0, len = stations.size(); i < len; ++i)
+        cout << stations[i].first << ' ' << stations[i].second << endl;
     int a, b;
     cin >> a >> b;
-    Response res = metro->query_money(a, b);
+    Response res = metro->query_time(a, b);
     cout << res.money << ' ' << res.cost_time << ' ' << res.distance << endl;
     foreach(it, res.path) {
         cout << it->first;
