@@ -2,11 +2,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "metro.cpp"
+#include "metro.h"
 
 #ifdef WIN32
 #include <Windows.h>
-#include <WinBase.h>
 #else
 #include <unistd.h>
 #endif
@@ -22,7 +21,7 @@ void clearScreen()
 
 void milliSleep(size_t ms) {
     #ifdef WIN32
-    sleep(ms);
+    Sleep(ms);
     #else
     timespec ts;
     ts.tv_sec = ms / 1000;
