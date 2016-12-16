@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "metro.h"
+#include "metro.cpp"
 
 #ifdef WIN32
 #include <Windows.h>
