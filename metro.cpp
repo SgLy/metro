@@ -18,6 +18,13 @@ using namespace std;
 #define INF (10001)
 
 struct Response {
+    /**
+     * A response structure for each query.
+     * Path: vector<pair<subway_name, vector<each_station_of_the_subway> > >
+     * Money: Money consumed.
+     * Cost_time: Time Consumed.
+     * Distance: Total Distance started from the start point.
+     * */
     vector<pair<string, vector<string> > > path;
     int money, cost_time;
     double distance;
