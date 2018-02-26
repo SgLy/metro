@@ -87,7 +87,7 @@ void action1(Metro * metro)
         printf("  Line %s:\n", allLines[i].first.c_str());
         vector<string> &allStations = allLines[i].second;
         for (size_t j = 0; j < allStations.size(); ++j)
-            printf("    Station %2u: %s\n", j + 1, allStations[j].c_str());
+            printf("    Station %2zu: %s\n", j + 1, allStations[j].c_str());
         if (i != allLines.size() - 1) {
             printf("\n  ENTER to next line...\n");
             enterConfirm();
@@ -104,7 +104,7 @@ int pickStation(const char msg[], Metro * metro)
     bigLine();
     vector< pair< string, vector<string> > > allLines =  metro->list_all_subway();
     for (size_t i = 0; i < allLines.size(); ++i)
-        printf("  %u. Line %s\n", i + 1, allLines[i].first.c_str());
+        printf("  %zu. Line %s\n", i + 1, allLines[i].first.c_str());
     smallLine();
     int line;
     while (true) {
@@ -120,7 +120,7 @@ int pickStation(const char msg[], Metro * metro)
     printf("  (%2d) Line %s\n\n", line, allLines[line - 1].first.c_str());
     vector<string> &allStations = allLines[line - 1].second;
     for (size_t i = 0; i < allStations.size(); ++i)
-        printf("  %u. %s\n", i + 1, allStations[i].c_str());
+        printf("  %zu. %s\n", i + 1, allStations[i].c_str());
     smallLine();
     int station;
     while (true) {
