@@ -56,13 +56,13 @@ struct Edge {
     double distance;
 
     Edge(
-            const string &start, 
-            const string &end, 
+            const string &start,
+            const string &end,
             const int &cost_time,
             const double &distance
-        ) :  
-        start(start), 
-        end(end), 
+        ) :
+        start(start),
+        end(end),
         cost_time(cost_time),
         distance(distance) {
     }
@@ -84,13 +84,13 @@ struct State {
      *              With the fact that no two subway line intersect with adjacent
      *              two stations, pre_station and now_station can determine which
      *              subway_line is on.
-     * Cost_time: The time consumed.    
+     * Cost_time: The time consumed.
      * Cost_money: The money consumed uptil the previous charge segment.
      *             For example, if user use APM, the user should pay the subway
      *             before it get on APM.
-     * Interchange: The number of interchange.            
+     * Interchange: The number of interchange.
      * Distance: The distance start from previous charge segment.
-     * Real_distance: The distance start from start station to previous charge 
+     * Real_distance: The distance start from start station to previous charge
      *                segment.
      *                That is, the Total_distance is Real_distance plus Distance.
      * */
@@ -216,8 +216,8 @@ private :
     }
 
     Response parse_response(
-            map<string, State> &dist, 
-            string &start, 
+            map<string, State> &dist,
+            string &start,
             string &end
             ) {
         /**
@@ -384,7 +384,7 @@ public :
          * Fix data format.
          * */
 
-        if((station_distance.begin())->first != 
+        if((station_distance.begin())->first !=
                 (station_time.begin())->first) {
             vector<pair<string, double> > temp;
             for(int i = station_time.size() - 1; i >= 0; --i)
@@ -414,7 +414,11 @@ public :
             const string subway_name(subway_name_list[i]);
             vector<pair<string, int> > station_time;
             vector<pair<string, double> > station_distance;
+            #ifdef WIN32
             read_data("data\\" + subway_name + ".txt", station_time, station_distance);
+            #else
+            read_data("data/" + subway_name + ".txt", station_time, station_distance);
+            #endif
 
             if(station_time.size() != station_distance.size()) {
                 cout << subway_name << " data format is not valid." << endl;
@@ -532,16 +536,16 @@ public :
 
 };
 const char* Metro::SUBWAY_NAME[] = {
-    "Ò»ºÅÏß",
-    "¶þºÅÏß",
-    "ÈýºÅÏß",
-    "ÈýºÅÏß±±ÑÓ¶Î",
-    "ËÄºÅÏß",
-    "ÎåºÅÏß",
-    "ÁùºÅÏß",
-    "°ËºÅÏß",
-    "¹ã·ðÏß",
-    "APMÁÐ³µ"
+    "ä¸€å·çº¿",
+    "äºŒå·çº¿",
+    "ä¸‰å·çº¿",
+    "ä¸‰å·çº¿åŒ—å»¶æ®µ",
+    "å››å·çº¿",
+    "äº”å·çº¿",
+    "å…­å·çº¿",
+    "å…«å·çº¿",
+    "å¹¿ä½›çº¿",
+    "APMåˆ—è½¦"
 };
 
 /*
